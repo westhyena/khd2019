@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
         ## data 섞기
         dataset = [[X, Y] for X, Y in zip(images, labels)]
-        random.shuffle(dataset)
+        np.random.shuffle(dataset)
         X = np.array([n[0] for n in dataset])
         Y = np.array([n[1] for n in dataset])
 
