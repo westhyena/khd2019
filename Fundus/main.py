@@ -21,7 +21,7 @@ import keras.backend.tensorflow_backend as K
 import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 
-from model import cnn_sample
+from model import cnn_sample, merge_model
 from dataprocessing import image_preprocessing, dataset_loader
 
 
@@ -89,10 +89,19 @@ if __name__ == '__main__':
 
     h, w = int(3072//RESIZE), int(3900//RESIZE)
     input_shape = (h, w, 4)
-    model = cnn_sample(in_shape=input_shape, num_classes=num_classes)
+    # model = cnn_sample(in_shape=input_shape, num_classes=num_classes)
+    model = merge_model (in_shape=input_shape, num_classes=num_classes)
     adam = optimizers.Adam(lr=learning_rate, decay=1e-5)                    # optional optimization
     sgd = optimizers.SGD(lr=learning_rate, momentum=0.9, nesterov=True)
-    model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
+    model.compile(loss={
+        'output_0': 'binary_crossentropy',
+        'output_1': 'binary_crossentropy',
+        'output_2': 'binary_crossentropy',
+        'output_3': 'binary_crossentropy',
+        'output_total': 'categorical_crossentropy'
+    }, optimizer=sgd, metrics=['accuracy'])
+
+    model.summary()
 
     bind_model(model)
     if config.pause:  ## test mode일 때
@@ -156,7 +165,7 @@ if __name__ == '__main__':
         '''
 
         """ Callback """
-        monitor = 'categorical_accuracy'
+        monitor = 'output_total_acc'
         reduce_lr = ReduceLROnPlateau(monitor=monitor, patience=3)
 
         """ Training loop """
@@ -167,6 +176,7 @@ if __name__ == '__main__':
         ## data를 trainin과 validation dataset으로 나누기
         train_val_ratio = 0.8
         tmp = int(len(Y)*train_val_ratio)
+
         X_train = X[:tmp]
         Y_train = Y[:tmp]
         X_val = X[tmp:]
@@ -179,8 +189,20 @@ if __name__ == '__main__':
             print('check point = {}'.format(epoch))
 
             # for no augmentation case
-            hist = model.fit(X_train, Y_train,
-                             validation_data=(X_val, Y_val),
+            hist = model.fit(X_train, {
+                'output_0': Y_train[:, 0],
+                'output_1': Y_train[:, 1],
+                'output_2': Y_train[:, 2],
+                'output_3': Y_train[:, 3],
+                'output_total': Y_train
+            },
+                             validation_data=(X_val, {
+                                 'output_0': Y_val[:, 0],
+                'output_1': Y_val[:, 1],
+                'output_2': Y_val[:, 2],
+                'output_3': Y_val[:, 3],
+                'output_total': Y_val
+                             }),
                              batch_size=batch_size,
                              #initial_epoch=epoch,
                              callbacks=[reduce_lr],
@@ -189,9 +211,9 @@ if __name__ == '__main__':
             t2 = time.time()
             print(hist.history)
             print('Training time for one epoch : %.1f' % ((t2 - t1)))
-            train_acc = hist.history['categorical_accuracy'][0]
+            train_acc = hist.history['output_total_acc'][0]
             train_loss = hist.history['loss'][0]
-            val_acc = hist.history['val_categorical_accuracy'][0]
+            val_acc = hist.history['val_output_total_acc'][0]
             val_loss = hist.history['val_loss'][0]
 
             nsml.report(summary=True, step=epoch, epoch_total=nb_epoch, loss=train_loss, acc=train_acc, val_loss=val_loss, val_acc=val_acc)
