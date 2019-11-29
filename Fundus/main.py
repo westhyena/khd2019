@@ -64,6 +64,7 @@ if __name__ == '__main__':
     args.add_argument('--epoch', type=int, default=10)                          # epoch 수 설정
     args.add_argument('--batch_size', type=int, default=8)                      # batch size 설정
     args.add_argument('--num_classes', type=int, default=4)                     # DO NOT CHANGE num_classes, class 수는 항상 4
+    args.add_argument('--load_from', type=str, default=None)
 
     # DONOTCHANGE: They are reserved for nsml
     args.add_argument('--mode', type=str, default='train', help='submit일때 해당값이 test로 설정됩니다.')
@@ -100,8 +101,32 @@ if __name__ == '__main__':
         print('Training Start...')
 
         img_path = DATASET_PATH + '/train/'
-        images, labels = dataset_loader(img_path, resize_factor=RESIZE, rescale=RESCALE)
-        # containing optimal parameters
+
+        if config.load_from:
+            # Load From Saved Session
+            data = {}
+            def nsml_load(dir_path, **kwargs):
+                images = np.load(os.path.join(dir_path, 'data_x.npy'))
+                labels = np.load(os.path.join(dir_path, 'data_y.npy'))
+                data['x'] = images
+                data['y'] = labels
+                print("Data Loaded!!!")
+            nsml.load(checkpoint='data', load_fn=nsml_load, session=config.load_from)
+
+            print("Data Loaded???")
+            print(type(data['x']))
+            print(type(data['y']))
+            images = data['x']
+            labels = data['y']
+        else:
+            images, labels = dataset_loader(img_path, resize_factor=RESIZE, rescale=RESCALE)
+            # containing optimal parameters
+
+            def nsml_save(dir_path, **kwargs):
+                np.save(os.path.join(dir_path, 'data_x.npy'), images)
+                np.save(os.path.join(dir_path, 'data_y.npy'), labels)
+                print("Data saved!!!")
+            nsml.save(checkpoint='data', save_fn=nsml_save)
 
         ## data 섞기
         dataset = [[X, Y] for X, Y in zip(images, labels)]
