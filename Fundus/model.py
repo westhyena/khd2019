@@ -23,6 +23,23 @@ from nsml.constants import DATASET_PATH, GPU_NUM
 from keras.applications.inception_v3 import InceptionV3
 
 
+from keras_efficientnets import EfficientNetB3
+
+
+def efficientnet(in_shape, num_classes=4, dense_blocks=[64]):
+  base_model = EfficientNetB3(in_shape, classes=num_classes, include_top=False, weights=None)
+  x = base_model.output
+  x = Flatten()(x)
+
+  for node in dense_blocks:
+    x = Dense(node, activation="relu")(x)
+    x = Dropout(0.3)(x)
+
+  x = Dense(num_classes, activation='softmax')(x)
+  model = Model(inputs=base_model.input, outputs=x)
+  return model
+
+
 def inception_v3(in_shape, num_classes=4, dense_blocks=[64]):
   base_model = InceptionV3(include_top=False,
                              weights=None,
