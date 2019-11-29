@@ -21,6 +21,11 @@ import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 
 
+# shuffle - random seed
+# keras concate
+
+
+
 
 def cnn_sample(in_shape, num_classes=4):    # Example CNN
 
@@ -41,6 +46,7 @@ def cnn_sample(in_shape, num_classes=4):    # Example CNN
     model.add(Conv2D(filters=64, kernel_size=5, padding='same'))
     model.add(ReLU())
     model.add(MaxPooling2D(pool_size=(2, 2)))
+    # model.add(Dropout(0.9))
 
     model.add(Conv2D(filters=128, kernel_size=6, padding='same'))
     model.add(BatchNormalization(axis=-1))
