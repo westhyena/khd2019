@@ -76,7 +76,7 @@ def dataset_loader(img_path, **kwargs):
         l = Label2Class(p.split('/')[-2])
         labels.append(l)
 
-        print(i + 1, '/', num_data, ' image(s)')
+        # print(i + 1, '/', num_data, ' image(s)')
 
     images = np.array(images)
     labels = np.array(labels)
