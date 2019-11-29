@@ -35,14 +35,6 @@ def clahe_image(im, clip_limit=2.0, title_grid_size=(8,8)):
 
 def image_preprocessing(im, rescale, resize_factor):
     res = crop(im, 0.7)
-    if rescale == True:
-        res = res / 255.
-    
-    gray = rgb2gray(res)
-    # gray = clahe_image(gray)
-
-    gray = np.expand_dims(gray, axis=2)
-    res = np.concatenate((res,gray), axis=2)
     
     ## 이미지 크기 조정 및 픽셀 범위 재설정
     h, w, c = 3072, 3900, 3
@@ -50,6 +42,16 @@ def image_preprocessing(im, rescale, resize_factor):
     # print(im.shape)
 
     res = cv2.resize(res, (nw, nh), interpolation=cv2.INTER_AREA)
+
+    gray = rgb2gray(res)
+    gray = gray.astype(np.uint8)
+    gray = clahe_image(gray)
+
+    gray = np.expand_dims(gray, axis=2)
+    res = np.concatenate((res,gray), axis=2)
+
+    if rescale == True:
+        res = res / 255.
 
     return res
 
@@ -86,8 +88,7 @@ def dataset_loader(img_path, rescale, resize_factor):
     labels = []
     for i, p in enumerate(p_list):
         im = cv2.imread(p, 3)
-        if not (resize_factor == 1.):
-            im = image_preprocessing(im, rescale=rescale, resize_factor=resize_factor)
+        im = image_preprocessing(im, rescale=rescale, resize_factor=resize_factor)
         images.append(im)
 
         # label 데이터 생성
