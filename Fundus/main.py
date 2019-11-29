@@ -171,7 +171,7 @@ if __name__ == '__main__':
         train_generator = train_datagen.flow(x=X_train, y=Y_train, shuffle= False, batch_size=batch_size, seed=seed)
 
         test_datagen = ImageDataGenerator()
-        validation_data = test_datagen.flow(x=X_val, y=Y_val, shuffle= False, batch_size=batch_size, seed=seed)
+        validation_generator = test_datagen.flow(x=X_val, y=Y_val, shuffle= False, batch_size=batch_size, seed=seed)
         # validation_data=validation_generator
 
 
