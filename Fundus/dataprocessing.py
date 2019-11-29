@@ -84,12 +84,14 @@ def dataset_loader(img_path, rescale, resize_factor):
     p_list.sort()
     num_data = len(p_list)
 
-    images = []
     labels = []
+    h, w, c = 3072, 3900, 3
+    nh, nw = int(h//resize_factor), int(w//resize_factor)
+    images = np.empty((len(p_list), nh, nw, 4), dtype=np.float32)
     for i, p in enumerate(p_list):
         im = cv2.imread(p, 3)
         im = image_preprocessing(im, rescale=rescale, resize_factor=resize_factor)
-        images.append(im)
+        images[i, ...,] = im
 
         # label 데이터 생성
         l = Label2Class(p.split('/')[-2])
@@ -98,7 +100,6 @@ def dataset_loader(img_path, rescale, resize_factor):
         if (i + 1) % 100 == 0:
             print(i + 1, '/', num_data, ' image(s)')
 
-    images = np.array(images)
     labels = np.array(labels)
 
     t2 = time.time()
