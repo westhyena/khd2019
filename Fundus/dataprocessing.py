@@ -7,8 +7,14 @@ import keras
 import cv2
 import numpy as np
 
-def crop(im, ratio, center_pos):
-    return im
+def crop(im, ratio):
+    new_width = int(im.shape[1] * ratio)
+    new_height = int(im.shape[0] * ratio)
+
+    left_margin = (im.shape[1] - new_width) // 2
+    top_margin = (im.shape[0] - new_height) // 2
+    return im[top_margin:-top_margin,
+            left_margin:-left_margin]
     
 
 def resize(im, new_width, new_height):
@@ -20,10 +26,10 @@ def clahe(im, clip_limit=2.0, title_grid_size=(8,8)):
 
 
 def image_preprocessing(im, resize_width, resize_height,
-                        crop_ratio=1., crop_center_pos=(0.5, 0.5),
+                        crop_ratio=0.7.,
                         apply_clahe=False, rescale=True):
     # crop
-    res = crop(im, crop_ratio, crop_center_pos)
+    res = crop(im, crop_ratio)
 
     # resize
     res = resize(res, resize_width, resize_height)
