@@ -7,15 +7,30 @@ import keras
 import cv2
 import numpy as np
 
+def crop(im, ratio, center_pos):
+    return im
+    
+
+def resize(im, new_width, new_height):
+    return cv2.resize(im, (new_width, new_height), interpolation=cv2.INTER_AREA)
 
 
-def image_preprocessing(im, rescale, resize_factor):
+def apply_clahe(im, clip_limit=2.0, title_grid_size=(8,8)):
+    return im
+
+
+def image_preprocessing(im, rescale, resize_factor,
+                        crop_ratio=1., crop_center_pos=(0.5, 0.5),
+                        apply_clahe=False):
+    # crop
+    res = crop(img, crop_ratio, crop_center_pos)
+
+    # resize
     ## 이미지 크기 조정 및 픽셀 범위 재설정
     h, w, c = 3072, 3900, 3
     nh, nw = int(h//resize_factor), int(w//resize_factor)
-    # print(im.shape)
-
-    res = cv2.resize(im, (nw, nh), interpolation=cv2.INTER_AREA)
+    res = resize(res, nw, nh)
+    res = apply_clahe(res)
 
     if rescale == True:
         res = res / 255.
