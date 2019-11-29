@@ -6,6 +6,8 @@ import keras
 import cv2
 import numpy as np
 
+from sklearn.metrics import accuracy_score
+
 
 from keras.utils import np_utils
 from sklearn.model_selection import train_test_split
@@ -30,15 +32,19 @@ RESIZE = 10.
 RESCALE = True
 
 
-def bind_model(model):
+def bind_model(inception_model, inception_ratio,
+               efficient_model, efficient_ratio
+               ):
     def save(dir_name):
         os.makedirs(dir_name, exist_ok=True)
-        model.save_weights(os.path.join(dir_name, 'model'))
+        inception_model.save_weights(os.path.join(dir_name, 'inception_model'))
+        efficient_model.save_weights(os.path.join(dir_name, 'efficient_model'))
         # model.save_weights(file_path,'model')
         print('model saved!')
 
     def load(dir_name):
-        model.load_weights(os.path.join(dir_name, 'model'))
+        inception_model.load_weights(os.path.join(dir_name, 'inception_model'))
+        efficient_model.load_weights(os.path.join(dir_name, 'efficient_model'))
         print('model loaded!')
 
     def infer(data, rescale=RESCALE, resize_factor=RESIZE):  ## test mode
@@ -49,7 +55,10 @@ def bind_model(model):
             X.append(image_preprocessing(d, rescale, resize_factor))
         X = np.array(X)
 
-        pred = model.predict(X)     # 모델 예측 결과: 0-3
+        inception_pred = inception_model.predict(X)
+        efficient_pred = efficient_model.predict(X)
+
+        pred = (inception_pred * inception_ratio + efficient_pred * efficient_ratio)
         pred = np.argmax(pred, axis=1)
         print('Prediction done!\n Saving the result...')
         return pred
@@ -61,12 +70,16 @@ if __name__ == '__main__':
     args = argparse.ArgumentParser()
 
     # hyperparameters
-    args.add_argument('--epoch', type=int, default=10)                          # epoch 수 설정
-    args.add_argument('--batch_size', type=int, default=8)                      # batch size 설정
     args.add_argument('--num_classes', type=int, default=4)                     # DO NOT CHANGE num_classes, class 수는 항상 4
     args.add_argument('--load_from', type=str, default=None)
-    args.add_argument('--load_model', type=str, default=None)
-    args.add_argument('--load_model_ckpt', type=str, default=None)
+    
+    args.add_argument('--inception', type=str, default='')
+    args.add_argument('--inception_ckpt', type=str, default='')
+    args.add_argument('--inception_ratio', type=float, default=1.)
+
+    args.add_argument('--efficient', type=str, default='')
+    args.add_argument('--efficient_ckpt', type=str, default='')
+    args.add_argument('--efficient_ratio', type=float, default=1.)
 
     # DONOTCHANGE: They are reserved for nsml
     args.add_argument('--mode', type=str, default='train', help='submit일때 해당값이 test로 설정됩니다.')
@@ -79,24 +92,36 @@ if __name__ == '__main__':
     seed = 1234
     np.random.seed(seed)
 
-    # training parameters
-    nb_epoch = config.epoch
-    batch_size = config.batch_size
-    num_classes = config.num_classes
+    def nsml_load(dir_name):
+        model.load_weights(os.path.join(dir_name, 'model'))
+        print('model loaded!')
 
     """ Model """
-    
-    learning_rate = 1e-4
-
     h, w = int(3072//RESIZE), int(3900//RESIZE)
     input_shape = (h, w, 4)
-    model = inception_v3(in_shape=input_shape, num_classes=num_classes)
-    # model = efficientnet(in_shape=input_shape, num_classes=num_classes)
-    adam = optimizers.Adam(lr=learning_rate, decay=1e-5)                    # optional optimization
-    sgd = optimizers.SGD(lr=learning_rate, momentum=0.9, nesterov=True)
-    model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
+    num_classes = config.num_classes
 
-    bind_model(model)
+    inception_model = inception_v3(input_shape, num_classes)
+    efficient_model = efficientnet(input_shape, num_classes)
+    
+    learning_rate = 1e-4
+    sgd = optimizers.SGD(lr=learning_rate, momentum=0.9, nesterov=True)
+    inception_model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
+    efficient_model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
+
+    def inception_load(dir_name):
+        inception_model.load_weights(os.path.join(dir_name, 'model'))
+        print('inception loaded')
+    
+    def efficient_load(dir_name):
+        efficient_model.load_weights(os.path.join(dir_name, 'model'))
+        print('efficient loaded')
+    
+    nsml.load(checkpoint=config.inception_ckpt, load_fn=inception_load, session=config.inception)
+    nsml.load(checkpoint=config.efficient_ckpt, load_fn=efficient_load, session=config.efficient)
+    
+    bind_model(inception_model, config.inception_ratio,
+               efficient_model, config.efficient_ratio)
     if config.pause:  ## test mode일 때
         print('Inferring Start...')
         nsml.paused(scope=locals())
@@ -105,13 +130,6 @@ if __name__ == '__main__':
         print('Training Start...')
 
         img_path = DATASET_PATH + '/train/'
-
-        if config.load_model:
-            nsml.load(checkpoint=config.load_model_ckpt, session=config.load_model)
-
-        if nb_epoch == 0:
-            nsml.save("zero")
-            exit()
 
         if config.load_from:
             # Load From Saved Session
@@ -146,18 +164,10 @@ if __name__ == '__main__':
         X = np.array([n[0] for n in dataset])
         Y = np.array([n[1] for n in dataset])
 
-        
-        ## Augmentation 예시
-        kwargs = dict(
-            rotation_range=180,
-            # zoom_range=0.0,
-            # width_shift_range=0.0,
-            # height_shift_range=0.0,
-            # horizontal_flip=True,
-            # vertical_flip=True
-        )
+        """ Training loop """
+        t0 = time.time()
 
-
+        ## data를 trainin과 validation dataset으로 나누기
         train_val_ratio = 0.8
         tmp = int(len(Y)*train_val_ratio)
         X_train = X[:tmp]
@@ -165,69 +175,17 @@ if __name__ == '__main__':
         X_val = X[tmp:]
         Y_val = Y[tmp:]
 
-        # then flow and fit_generator....
+        inception_pred = inception_model.predict(X_val)
+        efficient_pred = efficient_model.predict(X_val)
 
-        train_datagen = ImageDataGenerator(**kwargs)
-        train_generator = train_datagen.flow(x=X_train, y=Y_train, shuffle= False, batch_size=batch_size, seed=seed)
-
-        test_datagen = ImageDataGenerator()
-        validation_data = test_datagen.flow(x=X_val, y=Y_val, shuffle= False, batch_size=batch_size, seed=seed)
-        # validation_data=validation_generator
-
-
-
-        """ Callback """
-        monitor = 'categorical_accuracy'
-        reduce_lr = ReduceLROnPlateau(monitor=monitor, patience=3)
-
-        """ Training loop """
-        STEP_SIZE_TRAIN = len(X) // batch_size
-        print('\n\nSTEP_SIZE_TRAIN = {}\n\n'.format(STEP_SIZE_TRAIN))
-        t0 = time.time()
-
-        ## data를 trainin과 validation dataset으로 나누기
-
-        # train_val_ratio = 0.8
-        # tmp = int(len(Y)*train_val_ratio)
-        # X_train = X[:tmp]
-        # Y_train = Y[:tmp]
-        # X_val = X[tmp:]
-        # Y_val = Y[tmp:]
-
-        for epoch in range(nb_epoch):
-            t1 = time.time()
-            print("### Model Fitting.. ###")
-            print('epoch = {} / {}'.format(epoch+1, nb_epoch))
-            print('check point = {}'.format(epoch))
-
-            # for no augmentation case
-            hist = model.fit_generator(generator = train_generator,
-                                        steps_per_epoch=306,
-                                        epochs=nb_epoch,
-                                        callbacks=[reduce_lr],
-                                        validation_data=validation_generator,
-                                        validation_steps=8,                                        
-                                       )
-
-            # hist = model.fit(X_train, Y_train,
-            #                  validation_data=(X_val, Y_val),
-            #                  batch_size=batch_size,
-            #                  #initial_epoch=epoch,
-            #                  callbacks=[reduce_lr],
-            #                  shuffle=True,
-            #                  )
-
-            t2 = time.time()
-            print(hist.history)
-            print('Training time for one epoch : %.1f' % ((t2 - t1)))
-            train_acc = hist.history['categorical_accuracy'][0]
-            train_loss = hist.history['loss'][0]
-            val_acc = hist.history['val_categorical_accuracy'][0]
-            val_loss = hist.history['val_loss'][0]
-
-            nsml.report(summary=True, step=epoch, epoch_total=nb_epoch, loss=train_loss, acc=train_acc, val_loss=val_loss, val_acc=val_acc)
-            nsml.save(epoch)
-        print('Total training time : %.1f' % (time.time() - t0))
+        pred = (inception_pred * config.inception_ratio + efficient_pred * config.efficient_ratio)
+        pred = np.argmax(pred, axis=1)
+        y_true = np.argmax(Y_val, axis=1)
+        
+        acc = accuracy_score(y_true, pred)
+        nsml.report(summary=True, step=0, epoch_total=0, val_acc=acc)
+        nsml.save('zero')
+        print(acc)
         # print(model.predict_classes(X))
 
 

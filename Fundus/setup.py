@@ -6,5 +6,5 @@ print('setup_test.py is running...')
 
 setup(name='KYD_2019_Fundus',
       version='1.0',
-      install_requires=['scikit-learn']
+      install_requires=['scikit-learn', 'keras_efficientnets']
       ) ## 필요한 라이브러리 설치, 'keras==xx.xx'
