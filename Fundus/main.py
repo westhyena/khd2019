@@ -21,7 +21,7 @@ import keras.backend.tensorflow_backend as K
 import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 
-from model import cnn_sample, inception_v3, efficientnet
+from model import cnn_sample, inception_v3, efficientnet, resnext_50, densenet_121
 from dataprocessing import image_preprocessing, dataset_loader
 
 
@@ -90,8 +90,9 @@ if __name__ == '__main__':
 
     h, w = int(3072//RESIZE), int(3900//RESIZE)
     input_shape = (h, w, 4)
-    model = inception_v3(in_shape=input_shape, num_classes=num_classes)
+    # model = inception_v3(in_shape=input_shape, num_classes=num_classes)
     # model = efficientnet(in_shape=input_shape, num_classes=num_classes)
+    model = resnext_50(in_shape=input_shape, num_classes=num_classes)
     adam = optimizers.Adam(lr=learning_rate, decay=1e-5)                    # optional optimization
     sgd = optimizers.SGD(lr=learning_rate, momentum=0.9, nesterov=True)
     model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
