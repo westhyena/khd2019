@@ -49,9 +49,9 @@ def bind_model(model):
             X.append(image_preprocessing(d, rescale, resize_factor))
         X = np.array(X)
 
-        pred = model.predict_classes(X)     # 모델 예측 결과: 0-3
+        pred = model.predict(X)     # 모델 예측 결과: 0-3
         print('Prediction done!\n Saving the result...')
-        return pred
+        return np.argmax(pred[4], axis=1)
 
     nsml.bind(save=save, load=load, infer=infer)
 
@@ -115,6 +115,10 @@ if __name__ == '__main__':
 
         if config.load_model:
             nsml.load(checkpoint=config.load_model_ckpt, session=config.load_model)
+
+        if nb_epoch == 0:
+            nsml.save("zero")
+            exit()
 
         if config.load_from:
             # Load From Saved Session
