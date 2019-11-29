@@ -56,7 +56,7 @@ def bind_model(inception_model, inception_ratio,
         X = np.array(X)
 
         inception_pred = inception_model.predict(X)
-        efficient_pred = efficient_pred.predict(X)
+        efficient_pred = efficient_model.predict(X)
 
         pred = (inception_pred * inception_ratio + efficient_pred * efficient_ratio)
         pred = np.argmax(pred, axis=1)
