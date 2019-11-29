@@ -106,8 +106,8 @@ if __name__ == '__main__':
     learning_rate = 1e-4
 
     input_channel = 3
-    if APPLY_CLAHE:
-        input_channel += 1
+    # if APPLY_CLAHE:
+    #     input_channel += 1
     input_shape = (INPUT_HEIGHT, INPUT_WIDTH, input_channel)
 
     # model = cnn_sample(in_shape=input_shape, num_classes=num_classes)

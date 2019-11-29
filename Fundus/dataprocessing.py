@@ -67,10 +67,18 @@ def dataset_loader(img_path, **kwargs):
 
     images = []
     labels = []
+
+    image_height = kwargs["resize_height"]
+    image_width = kwargs["resize_width"]
+    image_channel = 3
+    # if kwargs["apply_clahe"]:
+    #     image_channel += 1
+
+    images = np.empty((len(p_list), image_height, image_width, image_channel), dtype=np.float32)
     for i, p in enumerate(p_list):
         im = cv2.imread(p, 3)
         im = image_preprocessing(im, **kwargs)
-        images.append(im)
+        images[i, ...,] = im
 
         # label 데이터 생성
         l = Label2Class(p.split('/')[-2])
@@ -78,7 +86,6 @@ def dataset_loader(img_path, **kwargs):
 
         # print(i + 1, '/', num_data, ' image(s)')
 
-    images = np.array(images)
     labels = np.array(labels)
 
     t2 = time.time()
