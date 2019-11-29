@@ -147,20 +147,35 @@ if __name__ == '__main__':
         X = np.array([n[0] for n in dataset])
         Y = np.array([n[1] for n in dataset])
 
-        '''
+        
         ## Augmentation 예시
         kwargs = dict(
             rotation_range=180,
-            zoom_range=0.0,
-            width_shift_range=0.0,
-            height_shift_range=0.0,
-            horizontal_flip=True,
-            vertical_flip=True
+            # zoom_range=0.0,
+            # width_shift_range=0.0,
+            # height_shift_range=0.0,
+            # horizontal_flip=True,
+            # vertical_flip=True
         )
-        train_datagen = ImageDataGenerator(**kwargs)
-        train_generator = train_datagen.flow(x=X, y=Y, shuffle= False, batch_size=batch_size, seed=seed)
+
+
+        train_val_ratio = 0.8
+        tmp = int(len(Y)*train_val_ratio)
+        X_train = X[:tmp]
+        Y_train = Y[:tmp]
+        X_val = X[tmp:]
+        Y_val = Y[tmp:]
+
         # then flow and fit_generator....
-        '''
+
+        train_datagen = ImageDataGenerator(**kwargs)
+        train_generator = train_datagen.flow(x=X_train, y=Y_train, shuffle= False, batch_size=batch_size, seed=seed)
+
+        test_datagen = ImageDataGenerator()
+        validation_generator = test_datagen.flow(x=X_val, y=Y_val, shuffle= False, batch_size=batch_size, seed=seed)
+        # validation_data=validation_generator
+
+
 
         """ Callback """
         monitor = 'categorical_accuracy'
@@ -172,12 +187,13 @@ if __name__ == '__main__':
         t0 = time.time()
 
         ## data를 trainin과 validation dataset으로 나누기
-        train_val_ratio = 0.8
-        tmp = int(len(Y)*train_val_ratio)
-        X_train = X[:tmp]
-        Y_train = Y[:tmp]
-        X_val = X[tmp:]
-        Y_val = Y[tmp:]
+
+        # train_val_ratio = 0.8
+        # tmp = int(len(Y)*train_val_ratio)
+        # X_train = X[:tmp]
+        # Y_train = Y[:tmp]
+        # X_val = X[tmp:]
+        # Y_val = Y[tmp:]
 
         for epoch in range(nb_epoch):
             t1 = time.time()
@@ -186,13 +202,22 @@ if __name__ == '__main__':
             print('check point = {}'.format(epoch))
 
             # for no augmentation case
-            hist = model.fit(X_train, Y_train,
-                             validation_data=(X_val, Y_val),
-                             batch_size=batch_size,
-                             #initial_epoch=epoch,
-                             callbacks=[reduce_lr],
-                             shuffle=True
-                             )
+            hist = model.fit_generator(generator = train_generator,
+                                        steps_per_epoch=306,
+                                        epochs=nb_epoch,
+                                        callbacks=[reduce_lr],
+                                        validation_data=validation_generator,
+                                        validation_steps=8,                                        
+                                       )
+
+            # hist = model.fit(X_train, Y_train,
+            #                  validation_data=(X_val, Y_val),
+            #                  batch_size=batch_size,
+            #                  #initial_epoch=epoch,
+            #                  callbacks=[reduce_lr],
+            #                  shuffle=True,
+            #                  )
+
             t2 = time.time()
             print(hist.history)
             print('Training time for one epoch : %.1f' % ((t2 - t1)))
