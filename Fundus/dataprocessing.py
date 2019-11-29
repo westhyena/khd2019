@@ -16,7 +16,17 @@ def resize(im, new_width, new_height):
 
 
 def clahe(im, clip_limit=2.0, title_grid_size=(8,8)):
-    return im
+    if len(im.shape) == 2:          # is gray scale
+        clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=title_grid_size)
+        return clahe.apply(im)
+    else:
+        lab = cv2.cvtColor(im, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+        cl = clahe.apply(l)
+        limg = cv2.merge((cl,a,b))
+        return cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
 
 
 def image_preprocessing(im, resize_width, resize_height,
