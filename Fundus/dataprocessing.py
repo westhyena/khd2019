@@ -7,9 +7,17 @@ import keras
 import cv2
 import numpy as np
 
+def crop(im, ratio):
+    new_width = int(im.shape[1] * ratio)
+    new_height = int(im.shape[0] * ratio)
 
+    left_margin = (im.shape[1] - new_width) // 2
+    top_margin = (im.shape[0] - new_height) // 2
+    return im[top_margin:-top_margin,
+            left_margin:-left_margin]
 
 def image_preprocessing(im, rescale, resize_factor):
+    im = crop(im, 0.7)
     ## 이미지 크기 조정 및 픽셀 범위 재설정
     h, w, c = 3072, 3900, 3
     nh, nw = int(h//resize_factor), int(w//resize_factor)
@@ -62,8 +70,9 @@ def dataset_loader(img_path, rescale, resize_factor):
         # label 데이터 생성
         l = Label2Class(p.split('/')[-2])
         labels.append(l)
-
-        print(i + 1, '/', num_data, ' image(s)')
+        
+        if (i + 1) % 100 == 0:
+            print(i + 1, '/', num_data, ' image(s)')
 
     images = np.array(images)
     labels = np.array(labels)
