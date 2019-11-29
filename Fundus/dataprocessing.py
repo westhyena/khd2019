@@ -19,21 +19,37 @@ def crop(im, ratio):
 def rgb2gray(im):
     return np.dot(im[...,:3], [0.2989, 0.5870, 0.1140])
 
+def clahe_image(im, clip_limit=2.0, title_grid_size=(8,8)):
+  if len(im.shape) == 2:
+    clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=title_grid_size)
+    return clahe.apply(im)
+  else:
+    lab = cv2.cvtColor(im, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+    cl = clahe.apply(l)
+    limg = cv2.merge((cl,a,b))
+    return cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+
+
 def image_preprocessing(im, rescale, resize_factor):
-    im = crop(im, 0.7)
-    gray = rgb2gray(im)
+    res = crop(im, 0.7)
+    if rescale == True:
+        res = res / 255.
+    
+    gray = rgb2gray(res)
+    # gray = clahe_image(gray)
+
     gray = np.expand_dims(gray, axis=2)
-    np.concatenate((im,gray), axis=2)
+    res = np.concatenate((res,gray), axis=2)
     
     ## 이미지 크기 조정 및 픽셀 범위 재설정
     h, w, c = 3072, 3900, 3
     nh, nw = int(h//resize_factor), int(w//resize_factor)
     # print(im.shape)
 
-    res = cv2.resize(im, (nw, nh), interpolation=cv2.INTER_AREA)
-
-    if rescale == True:
-        res = res / 255.
+    res = cv2.resize(res, (nw, nh), interpolation=cv2.INTER_AREA)
 
     return res
 
