@@ -2,7 +2,6 @@ import os
 import argparse
 import sys
 import time
-import random
 import keras
 import cv2
 import numpy as np
@@ -136,6 +135,7 @@ if __name__ == '__main__':
 
         ## data 섞기
         dataset = [[X, Y] for X, Y in zip(images, labels)]
+        seed = 1234
         np.random.shuffle(dataset)
         X = np.array([n[0] for n in dataset])
         Y = np.array([n[1] for n in dataset])
