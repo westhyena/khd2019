@@ -15,7 +15,7 @@ def resize(im, new_width, new_height):
     return cv2.resize(im, (new_width, new_height), interpolation=cv2.INTER_AREA)
 
 
-def apply_clahe(im, clip_limit=2.0, title_grid_size=(8,8)):
+def clahe(im, clip_limit=2.0, title_grid_size=(8,8)):
     return im
 
 
@@ -23,13 +23,13 @@ def image_preprocessing(im, resize_width, resize_height,
                         crop_ratio=1., crop_center_pos=(0.5, 0.5),
                         apply_clahe=False, rescale=True):
     # crop
-    res = crop(img, crop_ratio, crop_center_pos)
+    res = crop(im, crop_ratio, crop_center_pos)
 
     # resize
     res = resize(res, resize_width, resize_height)
 
     # clahe
-    res = apply_clahe(res)
+    res = clahe(res)
 
     if rescale == True:
         res = res / 255.
@@ -69,8 +69,7 @@ def dataset_loader(img_path, **kwargs):
     labels = []
     for i, p in enumerate(p_list):
         im = cv2.imread(p, 3)
-        if not (resize_factor == 1.):
-            im = image_preprocessing(im, **kwargs)
+        im = image_preprocessing(im, **kwargs)
         images.append(im)
 
         # label 데이터 생성
