@@ -34,8 +34,7 @@ RESCALE = True
 INPUT_WIDTH = 300
 INPUT_HEIGHT = 300
 
-CROP_RATIO = 1.
-CROP_CENTER_POS = (0.5, 0.5)
+CROP_RATIO = 0.7
 
 APPLY_CLAHE = True
 
@@ -44,7 +43,6 @@ preprocessing_options = dict(
     resize_width=INPUT_WIDTH,
     resize_height=INPUT_HEIGHT,
     crop_ratio=CROP_RATIO,
-    crop_center_pos=CROP_CENTER_POS,
     apply_clahe=APPLY_CLAHE
 )
 
@@ -61,13 +59,13 @@ def bind_model(model):
         print('model loaded!')
 
     def infer(data, rescale=RESCALE, resize_width=INPUT_WIDTH, resize_height=INPUT_HEIGHT,
-              crop_ratio=CROP_RATIO, crop_center_pos=CROP_CENTER_POS, apply_clahe=APPLY_CLAHE):  ## test mode
+              crop_ratio=CROP_RATIO, apply_clahe=APPLY_CLAHE):  ## test mode
         ##### DO NOT CHANGE ORDER OF TEST DATA #####
         X = []
         for i, d in enumerate(data):
             # test 데이터를 training 데이터와 같이 전처리 하기
             X.append(image_preprocessing(d, rescale, resize_width, resize_height,
-                                         crop_ratio, crop_center_pos, apply_clahe))
+                                         crop_ratio, apply_clahe))
         X = np.array(X)
 
         pred = model.predict_classes(X)     # 모델 예측 결과: 0-3
@@ -110,9 +108,9 @@ if __name__ == '__main__':
     #     input_channel += 1
     input_shape = (INPUT_HEIGHT, INPUT_WIDTH, input_channel)
 
-    # model = cnn_sample(in_shape=input_shape, num_classes=num_classes)
-    model = inception_v3(in_shape=input_shape, num_classes=num_classes,
-                        dense_blocks=[64])
+    model = cnn_sample(in_shape=input_shape, num_classes=num_classes)
+    # model = inception_v3(in_shape=input_shape, num_classes=num_classes,
+    #                     dense_blocks=[64])
     
     adam = optimizers.Adam(lr=learning_rate, decay=1e-5)                    # optional optimization
     # sgd = optimizers.SGD(lr=learning_rate, momentum=0.9, nesterov=True)

@@ -36,7 +36,7 @@ def clahe(im, clip_limit=2.0, title_grid_size=(8,8)):
 
 
 def image_preprocessing(im, resize_width, resize_height,
-                        crop_ratio=0.7.,
+                        crop_ratio=0.7,
                         apply_clahe=False, rescale=True):
     # crop
     res = crop(im, crop_ratio)
@@ -100,7 +100,8 @@ def dataset_loader(img_path, **kwargs):
         l = Label2Class(p.split('/')[-2])
         labels.append(l)
 
-        # print(i + 1, '/', num_data, ' image(s)')
+        if (i + 1) % 100 == 0:
+            print(i + 1, '/', num_data, ' image(s)')
 
     labels = np.array(labels)
 
