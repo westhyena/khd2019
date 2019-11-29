@@ -65,6 +65,8 @@ if __name__ == '__main__':
     args.add_argument('--batch_size', type=int, default=8)                      # batch size 설정
     args.add_argument('--num_classes', type=int, default=4)                     # DO NOT CHANGE num_classes, class 수는 항상 4
     args.add_argument('--load_from', type=str, default=None)
+    args.add_argument('--load_model', type=str, default=None)
+    args.add_argument('--load_model_ckpt', type=str, default=None)
 
     # DONOTCHANGE: They are reserved for nsml
     args.add_argument('--mode', type=str, default='train', help='submit일때 해당값이 test로 설정됩니다.')
@@ -102,6 +104,9 @@ if __name__ == '__main__':
         print('Training Start...')
 
         img_path = DATASET_PATH + '/train/'
+
+        if config.load_model:
+            nsml.load(checkpoint=config.load_model_ckpt, session=config.load_model)
 
         if config.load_from:
             # Load From Saved Session
