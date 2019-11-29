@@ -19,9 +19,9 @@ def apply_clahe(im, clip_limit=2.0, title_grid_size=(8,8)):
     return im
 
 
-def image_preprocessing(im, rescale, resize_factor,
+def image_preprocessing(im, resize_width, resize_height,
                         crop_ratio=1., crop_center_pos=(0.5, 0.5),
-                        apply_clahe=False):
+                        apply_clahe=False, rescale=True):
     # crop
     res = crop(img, crop_ratio, crop_center_pos)
 
@@ -49,17 +49,17 @@ def Label2Class(label):     # one hot encoding (0-3 --> [., ., ., .])
     return resvec
 
 
-def dataset_loader(img_path, rescale, resize_factor):
+def dataset_loader(img_path, **kwargs):
 
     t1 = time.time()
     print('Loading training data...\n')
-    if not ((resize_factor == 1.) and (rescale == False)):
-        print('Image preprocessing...')
-    if not resize_factor == 1.:
-        print('Image size is 3072*3900*3')
-        print('Resizing the image into {}*{}*{}...'.format(int(3072//resize_factor), int(3900//resize_factor), 3))
-    if not rescale == False:
-        print('Rescaling range of 0-255 to 0-1...\n')
+    # if not ((resize_factor == 1.) and (rescale == False)):
+    #     print('Image preprocessing...')
+    # if not resize_factor == 1.:
+    #     print('Image size is 3072*3900*3')
+    #     print('Resizing the image into {}*{}*{}...'.format(int(3072//resize_factor), int(3900//resize_factor), 3))
+    # if not rescale == False:
+    #     print('Rescaling range of 0-255 to 0-1...\n')
 
     ## 이미지 읽기
     p_list = [os.path.join(dirpath, f) for dirpath, dirnames, files in os.walk(img_path) for f in files if all(s in f for s in ['.jpg'])]
@@ -71,7 +71,7 @@ def dataset_loader(img_path, rescale, resize_factor):
     for i, p in enumerate(p_list):
         im = cv2.imread(p, 3)
         if not (resize_factor == 1.):
-            im = image_preprocessing(im, rescale=rescale, resize_factor=resize_factor)
+            im = image_preprocessing(im, **kwargs)
         images.append(im)
 
         # label 데이터 생성

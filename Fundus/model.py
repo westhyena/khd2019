@@ -9,17 +9,39 @@ import keras
 
 from keras.utils import np_utils
 from sklearn.model_selection import train_test_split
-from keras.models import Sequential
+from keras.models import Sequential, Model
+from keras.applications.inception_v3 import InceptionV3
 from keras.layers import Dense, Dropout
 from keras.layers import Conv2D, MaxPooling2D, Flatten, ZeroPadding2D
 from keras.layers import BatchNormalization, ReLU
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import  ModelCheckpoint, ReduceLROnPlateau
-from keras.utils.training_utils import multi_gpu_model
+# from keras.utils.training_utils import multi_gpu_model
 import keras.backend.tensorflow_backend as K
 import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 
+
+def inception_v3(in_shape, num_classes=4, dense_blocks=[64]):
+  base_model = InceptionV3(include_top=False,
+                             weights=None,
+                             input_shape=in_shape,
+                             classes=num_classes)
+
+  x = base_model.output
+  x = Flatten()(x)
+
+  for node in dense_blocks:
+    x = Dense(node, activation="relu")(x)
+    x = Dropout(0.5)(x)
+
+  if num_classes == 1:
+    x = Dense(1, activation='sigmoid')(x)
+  else:
+    x = Dense(num_classes, activation='softmax')(x)
+  
+  model = Model(inputs=base_model.input, outputs=x)
+  return model
 
 
 def cnn_sample(in_shape, num_classes=4):    # Example CNN

@@ -1,3 +1,5 @@
+#-*- coding: utf-8 -*-
+
 import os
 import argparse
 import sys
@@ -17,18 +19,34 @@ from keras.layers import BatchNormalization, ReLU
 from keras.preprocessing.image import ImageDataGenerator
 from keras import optimizers
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
-from keras.utils.training_utils import multi_gpu_model
+# from keras.utils.training_utils import multi_gpu_model
 import keras.backend.tensorflow_backend as K
 import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 
-from model import cnn_sample
+from model import cnn_sample, inception_v3
 from dataprocessing import image_preprocessing, dataset_loader
 
 
 ## setting values of preprocessing parameters
-RESIZE = 10.
 RESCALE = True
+
+INPUT_WIDTH = 300
+INPUT_HEIGHT = 300
+
+CROP_RATIO = 1.
+CROP_CENTER_POS = (0.5, 0.5)
+
+APPLY_CLAHE = True
+
+preprocessing_options = dict(
+    rescale=RESCALE,
+    resize_width=INPUT_WIDTH,
+    resize_height=INPUT_HEIGHT,
+    crop_ratio=CROP_RATIO,
+    crop_center_pos=CROP_CENTER_POS,
+    apply_clahe=APPLY_CLAHE
+)
 
 
 def bind_model(model):
@@ -42,12 +60,14 @@ def bind_model(model):
         model.load_weights(os.path.join(dir_name, 'model'))
         print('model loaded!')
 
-    def infer(data, rescale=RESCALE, resize_factor=RESIZE):  ## test mode
+    def infer(data, rescale=RESCALE, resize_width=INPUT_WIDTH, resize_height=INPUT_HEIGHT,
+              crop_ratio=CROP_RATIO, crop_center_pos=CROP_CENTER_POS, apply_clahe=APPLY_CLAHE):  ## test mode
         ##### DO NOT CHANGE ORDER OF TEST DATA #####
         X = []
         for i, d in enumerate(data):
             # test 데이터를 training 데이터와 같이 전처리 하기
-            X.append(image_preprocessing(d, rescale, resize_factor))
+            X.append(image_preprocessing(d, rescale, resize_width, resize_height,
+                                         crop_ratio, crop_center_pos, apply_clahe))
         X = np.array(X)
 
         pred = model.predict_classes(X)     # 모델 예측 결과: 0-3
@@ -85,11 +105,22 @@ if __name__ == '__main__':
     
     learning_rate = 1e-4
 
-    h, w = int(3072//RESIZE), int(3900//RESIZE)
-    model = cnn_sample(in_shape=(h, w, 3), num_classes=num_classes)
+    input_channel = 3
+    if APPLY_CLAHE:
+        input_channel += 1
+    input_shape = (INPUT_HEIGHT, INPUT_WIDTH, input_channel)
+
+    # model = cnn_sample(in_shape=input_shape, num_classes=num_classes)
+    model = inception_v3(in_shape=input_shape, num_classes=num_classes,
+                        dense_blocks=[64])
+    
     adam = optimizers.Adam(lr=learning_rate, decay=1e-5)                    # optional optimization
-    sgd = optimizers.SGD(lr=learning_rate, momentum=0.9, nesterov=True)
-    model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
+    # sgd = optimizers.SGD(lr=learning_rate, momentum=0.9, nesterov=True)
+
+    loss = 'categorical_crossentropy'
+    if num_classes == 1:
+        loss = 'binary_crossentropy'
+    model.compile(loss=loss, optimizer=adam, metrics=['categorical_accuracy'])
 
     bind_model(model)
     if config.pause:  ## test mode일 때
@@ -100,7 +131,7 @@ if __name__ == '__main__':
         print('Training Start...')
 
         img_path = DATASET_PATH + '/train/'
-        images, labels = dataset_loader(img_path, resize_factor=RESIZE, rescale=RESCALE)
+        images, labels = dataset_loader(img_path, **preprocessing_options)
         # containing optimal parameters
 
         ## data 섞기
