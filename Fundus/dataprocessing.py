@@ -26,10 +26,9 @@ def image_preprocessing(im, resize_width, resize_height,
     res = crop(img, crop_ratio, crop_center_pos)
 
     # resize
-    ## 이미지 크기 조정 및 픽셀 범위 재설정
-    h, w, c = 3072, 3900, 3
-    nh, nw = int(h//resize_factor), int(w//resize_factor)
-    res = resize(res, nw, nh)
+    res = resize(res, resize_width, resize_height)
+
+    # clahe
     res = apply_clahe(res)
 
     if rescale == True:
