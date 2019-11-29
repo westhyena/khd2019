@@ -16,8 +16,15 @@ def crop(im, ratio):
     return im[top_margin:-top_margin,
             left_margin:-left_margin]
 
+def rgb2gray(im):
+    return np.dot(im[...,:3], [0.2989, 0.5870, 0.1140])
+
 def image_preprocessing(im, rescale, resize_factor):
     im = crop(im, 0.7)
+    gray = rgb2gray(im)
+    gray = np.expand_dims(gray, axis=2)
+    np.concatenate((im,gray), axis=2)
+    
     ## 이미지 크기 조정 및 픽셀 범위 재설정
     h, w, c = 3072, 3900, 3
     nh, nw = int(h//resize_factor), int(w//resize_factor)
