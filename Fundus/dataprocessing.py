@@ -34,11 +34,13 @@ def clahe_image(im, clip_limit=2.0, title_grid_size=(8,8)):
 
 
 def image_preprocessing(im, rescale, resize_factor):
-    res = crop(im, 0.7)
+    res = crop(im, 0.5)
     
     ## 이미지 크기 조정 및 픽셀 범위 재설정
     h, w, c = 3072, 3900, 3
     nh, nw = int(h//resize_factor), int(w//resize_factor)
+    # nh, nw = 224, 224
+    
     # print(im.shape)
 
     res = cv2.resize(res, (nw, nh), interpolation=cv2.INTER_AREA)
@@ -86,8 +88,9 @@ def dataset_loader(img_path, rescale, resize_factor):
 
     labels = []
     h, w, c = 3072, 3900, 3
-    nh, nw = int(h//resize_factor), int(w//resize_factor)
-    images = np.empty((len(p_list), nh, nw, 4), dtype=np.float32)
+    nh, nw, c = int(h//resize_factor), int(w//resize_factor), 4
+    # nh, nw, c = 224, 224, 3
+    images = np.empty((len(p_list), nh, nw, c), dtype=np.float32)
     for i, p in enumerate(p_list):
         im = cv2.imread(p, 3)
         im = image_preprocessing(im, rescale=rescale, resize_factor=resize_factor)

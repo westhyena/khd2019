@@ -21,7 +21,7 @@ import keras.backend.tensorflow_backend as K
 import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 
-from model import cnn_sample, inception_v3, efficientnet, resnext_50, densenet_121
+from model import cnn_sample, inception_v3, efficientnet, mobilenet_v2, resnet50, densenet_121
 from dataprocessing import image_preprocessing, dataset_loader
 
 
@@ -86,16 +86,20 @@ if __name__ == '__main__':
 
     """ Model """
     
-    learning_rate = 1e-4
+    learning_rate = 0.0001
 
     h, w = int(3072//RESIZE), int(3900//RESIZE)
     input_shape = (h, w, 4)
-    # model = inception_v3(in_shape=input_shape, num_classes=num_classes)
+    # input_shape = (224, 224, 3)
+    model = inception_v3(in_shape=input_shape, num_classes=num_classes)
     # model = efficientnet(in_shape=input_shape, num_classes=num_classes)
-    model = resnext_50(in_shape=input_shape, num_classes=num_classes)
-    adam = optimizers.Adam(lr=learning_rate, decay=1e-5)                    # optional optimization
-    sgd = optimizers.SGD(lr=learning_rate, momentum=0.9, nesterov=True)
-    model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
+    # model = resnet50(in_shape=input_shape, num_classes=num_classes)
+    # model = densenet_121(in_shape=input_shape, num_classes=num_classes)
+    # model = mobilenet_v2(in_shape=input_shape, num_classes=num_classes)
+    opt = optimizers.Adam(lr=learning_rate, beta_1=0.5)                    # optional optimization
+    # opt = optimizers.SGD(lr=learning_rate, momentum=0.9, nesterov=True)
+    # opt = optimizers.adamax(lr=learning_rate)
+    model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['categorical_accuracy'])
 
     bind_model(model)
     if config.pause:  ## test mode일 때
@@ -150,14 +154,13 @@ if __name__ == '__main__':
         
         ## Augmentation 예시
         kwargs = dict(
-            rotation_range=180,
-            # zoom_range=0.0,
-            # width_shift_range=0.0,
-            # height_shift_range=0.0,
-            # horizontal_flip=True,
-            # vertical_flip=True
+            rotation_range=90,
+            zoom_range=0.01,
+            width_shift_range=0.01,
+            height_shift_range=0.01,
+            horizontal_flip=True,
+            vertical_flip=True
         )
-
 
         train_val_ratio = 0.8
         tmp = int(len(Y)*train_val_ratio)
@@ -167,14 +170,13 @@ if __name__ == '__main__':
         Y_val = Y[tmp:]
 
         # then flow and fit_generator....
-
+# , preprocessing_function=keras.applications.resnet50.preprocess_input
         train_datagen = ImageDataGenerator(**kwargs)
-        train_generator = train_datagen.flow(x=X_train, y=Y_train, shuffle= False, batch_size=batch_size, seed=seed)
+        train_generator = train_datagen.flow(x=X_train, y=Y_train, shuffle=True, batch_size=batch_size)
 
         test_datagen = ImageDataGenerator()
-        validation_generator = test_datagen.flow(x=X_val, y=Y_val, shuffle= False, batch_size=batch_size, seed=seed)
-        # validation_data=validation_generator
-
+        validation_generator = test_datagen.flow(x=X_val, y=Y_val, shuffle=True, batch_size=batch_size)
+        validation_data=validation_generator
 
 
         """ Callback """
@@ -195,6 +197,9 @@ if __name__ == '__main__':
         # X_val = X[tmp:]
         # Y_val = Y[tmp:]
 
+        step_per_epoch = len(X_train) // batch_size + 1
+        validation_steps = len(X_val) // batch_size + 1
+
         for epoch in range(nb_epoch):
             t1 = time.time()
             print("### Model Fitting.. ###")
@@ -203,11 +208,11 @@ if __name__ == '__main__':
 
             # for no augmentation case
             hist = model.fit_generator(generator = train_generator,
-                                        steps_per_epoch=306,
-                                        epochs=nb_epoch,
+                                        steps_per_epoch=step_per_epoch,
+                                        epochs=1,
                                         callbacks=[reduce_lr],
                                         validation_data=validation_generator,
-                                        validation_steps=8,                                        
+                                        validation_steps=validation_steps,                                        
                                        )
 
             # hist = model.fit(X_train, Y_train,

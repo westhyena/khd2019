@@ -11,7 +11,7 @@ from keras.utils import np_utils
 from sklearn.model_selection import train_test_split
 from keras.models import Sequential, Model
 from keras.layers import Dense, Dropout
-from keras.layers import Conv2D, MaxPooling2D, Flatten, ZeroPadding2D
+from keras.layers import Conv2D, MaxPooling2D, Flatten, ZeroPadding2D, GlobalAveragePooling2D
 from keras.layers import BatchNormalization, ReLU
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import  ModelCheckpoint, ReduceLROnPlateau
@@ -21,29 +21,32 @@ import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 
 from keras.applications.inception_v3 import InceptionV3
-from keras.applications.resnext import ResNeXt50
+from keras.applications.resnet50 import ResNet50
 from keras.applications.densenet import DenseNet121
-
+from keras.applications.mobilenet_v2 import MobileNetV2
 
 from keras_efficientnets import EfficientNetB3
 
 
-def resnext_50(in_shape, num_classes=4, dense_blocks=[64]):
-  base_model = ResNeXt50(in_shape, classes=num_classes, include_top=False, weights=None)
-  x = base_model.output
-  x = Flatten()(x)
-
-  for node in dense_blocks:
-    x = Dense(node, activation="relu")(x)
-    x = Dropout(0.3)(x)
-
-  x = Dense(num_classes, activation='softmax')(x)
-  model = Model(inputs=base_model.input, outputs=x)
-  return model
+def resnet50(in_shape, num_classes=4, dense_blocks=[64]):
+  return ResNet50(in_shape, classes=num_classes, weights=None)
 
 
 def densenet_121(in_shape, num_classes=4, dense_blocks=[64]):
-  base_model = DenseNet121(in_shape, classes=num_classes, include_top=False, weights=None)
+  return DenseNet121(in_shape, classes=num_classes, weights=None)
+#   x = base_model.output
+#   x = Flatten()(x)
+
+#   for node in dense_blocks:
+#     x = Dense(node, activation="relu")(x)
+#     x = Dropout(0.3)(x)
+
+#   x = Dense(num_classes, activation='softmax')(x)
+#   model = Model(inputs=base_model.input, outputs=x)
+#   return model
+
+def mobilenet_v2(in_shape, num_classes=4, dense_blocks=[64]):
+  base_model = MobileNetV2(in_shape, include_top=False, weights=None)
   x = base_model.output
   x = Flatten()(x)
 
@@ -59,13 +62,12 @@ def densenet_121(in_shape, num_classes=4, dense_blocks=[64]):
 def efficientnet(in_shape, num_classes=4, dense_blocks=[64]):
   base_model = EfficientNetB3(in_shape, classes=num_classes, include_top=False, weights=None)
   x = base_model.output
-  x = Flatten()(x)
 
-  for node in dense_blocks:
-    x = Dense(node, activation="relu")(x)
-    x = Dropout(0.3)(x)
-
-  x = Dense(num_classes, activation='softmax')(x)
+  x = GlobalAveragePooling2D()(x)
+  x = Dropout(0.5)(x)
+  x = Dense(1024, activation='relu')(x)
+  x = Dropout(0.5)(x)
+  x = Dense(num_classes, activation='softmax', name='final_output')(x)
   model = Model(inputs=base_model.input, outputs=x)
   return model
 
@@ -77,13 +79,20 @@ def inception_v3(in_shape, num_classes=4, dense_blocks=[64]):
                              classes=num_classes)
 
   x = base_model.output
-  x = Flatten()(x)
 
-  for node in dense_blocks:
-    x = Dense(node, activation="relu")(x)
-    x = Dropout(0.3)(x)
+  x = GlobalAveragePooling2D()(x)
+  x = Dropout(0.5)(x)
+  x = Dense(1024, activation='relu')(x)
+  x = Dropout(0.5)(x)
+  x = Dense(num_classes, activation='softmax', name='final_output')(x)
 
-  x = Dense(num_classes, activation='softmax')(x)
+  # x = Flatten()(x)
+
+  # for node in dense_blocks:
+  #   x = Dense(node, activation="relu")(x)
+  #   x = Dropout(0.3)(x)
+
+  # x = Dense(num_classes, activation='softmax')(x)
   model = Model(inputs=base_model.input, outputs=x)
   return model
 
