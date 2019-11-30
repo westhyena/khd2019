@@ -94,6 +94,7 @@ if __name__ == '__main__':
     # model = efficientnet(in_shape=input_shape, num_classes=num_classes)
     adam = optimizers.Adam(lr=learning_rate, decay=1e-5)                    # optional optimization
     sgd = optimizers.SGD(lr=learning_rate, momentum=0.9, nesterov=True)
+    adamax = optimizer.adamax(lr=learning_rate, decay=1e-5)
     model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
 
     bind_model(model)
